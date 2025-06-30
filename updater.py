@@ -1,6 +1,8 @@
 import json, links
+import time
 from datetime import datetime
 
+import const
 from const import DbType, URL_BY_TYPE
 from scraper import async_monologue_scraper
 
@@ -30,6 +32,15 @@ def check_outdated_db(timestamp: datetime = None, schema_name: str = "male_monol
 
 
 def update_monologues_by_page(schema_name: DbType, page_number: int = 0):
+    """
+    Updates the monologues database.
+    :param schema_name:
+    :type schema_name: DbType - specifies
+    :param page_number: The blog pagination number.
+    :type page_number:
+    :return:
+    :rtype:
+    """
 
     url = URL_BY_TYPE[schema_name]
     print(f"Updating monologues at url [{url}] page [{page_number}]")
@@ -62,3 +73,8 @@ def update_monologues_by_page(schema_name: DbType, page_number: int = 0):
         json.dump(database, db)
 
     print("Update done")
+
+if __name__ == '__main__':
+    for i in range(40, 46):
+        time.sleep(3)
+        update_monologues_by_page(schema_name=DbType.MALE.value, page_number=i)

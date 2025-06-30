@@ -1,4 +1,6 @@
 import time
+
+from bs4 import BeautifulSoup
 from selenium.webdriver.common.by import By
 from selenium import webdriver
 from typing import List, Dict
@@ -43,12 +45,15 @@ def async_monologue_scraper(url: str) -> List[Dict]:
 
     # run the browser in headless mode
     options.add_argument("--headless=new")
+    options.add_argument("--charset=utf-8")
 
     # instantiate Chrome WebDriver with options
     driver = webdriver.Chrome(options=options)
 
     # open the specified URL in the browser
     driver.get(url)
+
+    soup = BeautifulSoup(driver.page_source)
 
     # get the previous height value
     last_height = driver.execute_script("return document.body.scrollHeight")

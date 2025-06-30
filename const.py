@@ -7,6 +7,6 @@ class DbType(Enum):
 
 
 URL_BY_TYPE = {
-    "FEMALE": "https://www.recitazionecinematografica.com/category/monologhi-femminili",
-    "MALE": "https://www.recitazionecinematografica.com/category/monologhi-maschili"
+    "female_monologues": "https://www.recitazionecinematografica.com/category/monologhi-femminili",
+    "male_monologues": "https://www.recitazionecinematografica.com/category/monologhi-maschili"
 }
