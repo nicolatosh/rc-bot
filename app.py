@@ -206,7 +206,7 @@ async def main() -> None:
     application.add_handler(conv_handler)
 
     # Pass webhook settings to telegram
-    await application.bot.set_webhook(url=f"{WEBHOOK_URL}/telegram", allowed_updates=Update.ALL_TYPES)
+    await application.bot.set_webhook(url=f"{WEBHOOK_URL}", allowed_updates=Update.ALL_TYPES)
 
     webserver = uvicorn.Server(
         config=uvicorn.Config(
