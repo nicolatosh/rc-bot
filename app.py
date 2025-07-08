@@ -163,6 +163,7 @@ async def main() -> None:
         )
     )
 
+    await application.initialize()
     await updater.initialize()
     await updater.start_webhook(listen="0.0.0.0",
                                 port=PORT,
