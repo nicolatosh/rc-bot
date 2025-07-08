@@ -55,10 +55,11 @@ logging.basicConfig(
 logging.getLogger("httpx").setLevel(logging.WARNING)
 app = Flask(__name__)
 
+
+
 # Define configuration constants
 ADMIN_CHAT_ID = 123456
 from credentials import BOT_TOKEN, BOT_USERNAME, PORT
-
 
 @dataclass
 class WebhookUpdate:
@@ -83,6 +84,51 @@ class CustomContext(CallbackContext[ExtBot, dict, dict, dict]):
         if isinstance(update, WebhookUpdate):
             return cls(application=application, user_id=update.user_id)
         return super().from_update(update, application)
+
+
+"""Set up PTB application and a web application for handling the incoming requests."""
+context_types = ContextTypes(context=CustomContext)
+# Here we set updater to None because we want our custom webhook server to handle the updates
+# and hence we don't need an Updater instance
+application = (
+    Application.builder().token(BOT_TOKEN).updater(None).context_types(context_types).build()
+)
+
+
+@app.post("/telegram")  # type: ignore[misc]
+async def telegram() -> Response:
+    """Handle incoming Telegram updates by putting them into the `update_queue`"""
+    await application.update_queue.put(Update.de_json(data=request.json, bot=application.bot))
+    return Response(status=HTTPStatus.OK)
+
+
+@app.route("/submitpayload", methods=["GET", "POST"])  # type: ignore[misc]
+async def custom_updates() -> Response:
+    """
+    Handle incoming webhook updates by also putting them into the `update_queue` if
+    the required parameters were passed correctly.
+    """
+    try:
+        user_id = int(request.args["user_id"])
+        payload = request.args["payload"]
+    except KeyError:
+        abort(
+            HTTPStatus.BAD_REQUEST,
+            "Please pass both `user_id` and `payload` as query parameters.",
+        )
+    except ValueError:
+        abort(HTTPStatus.BAD_REQUEST, "The `user_id` must be a string!")
+
+    await application.update_queue.put(WebhookUpdate(user_id=user_id, payload=payload))
+    return Response(status=HTTPStatus.OK)
+
+
+@app.get("/healthcheck")  # type: ignore[misc]
+async def health() -> Response:
+    """For the health endpoint, reply with a simple plain text message."""
+    response = make_response("The bot is still running fine :)", HTTPStatus.OK)
+    response.mimetype = "text/plain"
+    return response
 
 async def start(update: Update, context: CallbackContext) -> int:
     keyboard = [
@@ -143,13 +189,6 @@ async def webhook_update(update: WebhookUpdate, context: CustomContext) -> None:
     await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=text, parse_mode=ParseMode.HTML)
 
 async def main() -> None:
-    """Set up PTB application and a web application for handling the incoming requests."""
-    context_types = ContextTypes(context=CustomContext)
-    # Here we set updater to None because we want our custom webhook server to handle the updates
-    # and hence we don't need an Updater instance
-    application = (
-        Application.builder().token(BOT_TOKEN).updater(None).context_types(context_types).build()
-    )
 
     # ConversationHandler to handle the state machine
     conv_handler = ConversationHandler(
@@ -168,40 +207,6 @@ async def main() -> None:
 
     # Pass webhook settings to telegram
     await application.bot.set_webhook(url=f"{WEBHOOK_URL}/telegram", allowed_updates=Update.ALL_TYPES)
-
-
-    @app.post("/telegram")  # type: ignore[misc]
-    async def telegram() -> Response:
-        """Handle incoming Telegram updates by putting them into the `update_queue`"""
-        await application.update_queue.put(Update.de_json(data=request.json, bot=application.bot))
-        return Response(status=HTTPStatus.OK)
-
-    @app.route("/submitpayload", methods=["GET", "POST"])  # type: ignore[misc]
-    async def custom_updates() -> Response:
-        """
-        Handle incoming webhook updates by also putting them into the `update_queue` if
-        the required parameters were passed correctly.
-        """
-        try:
-            user_id = int(request.args["user_id"])
-            payload = request.args["payload"]
-        except KeyError:
-            abort(
-                HTTPStatus.BAD_REQUEST,
-                "Please pass both `user_id` and `payload` as query parameters.",
-            )
-        except ValueError:
-            abort(HTTPStatus.BAD_REQUEST, "The `user_id` must be a string!")
-
-        await application.update_queue.put(WebhookUpdate(user_id=user_id, payload=payload))
-        return Response(status=HTTPStatus.OK)
-
-    @app.get("/healthcheck")  # type: ignore[misc]
-    async def health() -> Response:
-        """For the health endpoint, reply with a simple plain text message."""
-        response = make_response("The bot is still running fine :)", HTTPStatus.OK)
-        response.mimetype = "text/plain"
-        return response
 
     webserver = uvicorn.Server(
         config=uvicorn.Config(
