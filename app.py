@@ -78,9 +78,9 @@ async def telegram() -> Response:
     """Handle incoming Telegram updates by putting them into the `update_queue`"""
     update = Update.de_json(data=request.json, bot=application.bot)
     logging.info(f"Received update: {update}")
-    await application.update_queue.put(Update.de_json(data=request.json, bot=application.bot))
+    await application.process_update(Update.de_json(data=request.json, bot=application.bot))
+    await button(update, application)
     return Response(status=HTTPStatus.OK)
-
 
 
 @app.get("/healthcheck")  # type: ignore[misc]
@@ -155,7 +155,6 @@ async def main() -> None:
 
     # Pass webhook settings to telegram
 
-
     webserver = uvicorn.Server(
         config=uvicorn.Config(
             app=WsgiToAsgi(app),
@@ -170,6 +169,7 @@ async def main() -> None:
                                 webhook_url=WEBHOOK_URL + "/telegram",
                                 allowed_updates=Update.ALL_TYPES
                                )
+
     # Run application and webserver together
     async with application:
         await application.start()
