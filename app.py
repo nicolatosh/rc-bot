@@ -59,7 +59,7 @@ app = Flask(__name__)
 
 # Define configuration constants
 ADMIN_CHAT_ID = 123456
-from credentials import BOT_TOKEN, BOT_USERNAME, PORT
+from credentials import BOT_TOKEN, PORT
 
 @dataclass
 class WebhookUpdate:
@@ -98,6 +98,7 @@ application = (
 @app.post("/telegram")  # type: ignore[misc]
 async def telegram() -> Response:
     """Handle incoming Telegram updates by putting them into the `update_queue`"""
+    logging.info("Received incoming Telegram update")
     await application.update_queue.put(Update.de_json(data=request.json, bot=application.bot))
     return Response(status=HTTPStatus.OK)
 
@@ -108,6 +109,7 @@ async def custom_updates() -> Response:
     Handle incoming webhook updates by also putting them into the `update_queue` if
     the required parameters were passed correctly.
     """
+    logging.info("Received submitpayload")
     try:
         user_id = int(request.args["user_id"])
         payload = request.args["payload"]
@@ -131,6 +133,7 @@ async def health() -> Response:
     return response
 
 async def start(update: Update, context: CallbackContext) -> int:
+    logging.info("start called")
     keyboard = [
         [InlineKeyboardButton("Maschili", callback_data=str(MALE_MONOLOGUES))],
         [InlineKeyboardButton("Femminili", callback_data=str(FEMALE_MONOLOGUES))],
@@ -178,7 +181,9 @@ async def start_over(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def webhook_update(update: WebhookUpdate, context: CustomContext) -> None:
     """Handle custom updates."""
+    logging.info("Received webhook_update")
     chat_member = await context.bot.get_chat_member(chat_id=update.user_id, user_id=update.user_id)
+    logging.info(f"New message received form {update.user_id}")
     payloads = context.user_data.setdefault("payloads", [])
     payloads.append(update.payload)
     combined_payloads = "</code>\n• <code>".join(payloads)
@@ -213,7 +218,8 @@ async def main() -> None:
         config=uvicorn.Config(
             app=WsgiToAsgi(app),
             port=PORT,
-            use_colors=False
+            use_colors=False,
+
         )
     )
 
