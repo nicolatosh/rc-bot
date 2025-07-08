@@ -53,7 +53,6 @@ logging.basicConfig(
 )
 # set higher logging level for httpx to avoid all GET and POST requests being logged
 logging.getLogger("httpx").setLevel(logging.WARNING)
-
 app = Flask(__name__)
 
 # Define configuration constants
@@ -143,9 +142,7 @@ async def webhook_update(update: WebhookUpdate, context: CustomContext) -> None:
     )
     await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=text, parse_mode=ParseMode.HTML)
 
-
-
-async def main(app: Flask) -> None:
+async def main() -> None:
     """Set up PTB application and a web application for handling the incoming requests."""
     context_types = ContextTypes(context=CustomContext)
     # Here we set updater to None because we want our custom webhook server to handle the updates
@@ -172,9 +169,6 @@ async def main(app: Flask) -> None:
     # Pass webhook settings to telegram
     await application.bot.set_webhook(url=f"{WEBHOOK_URL}/telegram", allowed_updates=Update.ALL_TYPES)
 
-    @app.route('/')
-    def home():
-        return 'Hello, World!'
 
     @app.post("/telegram")  # type: ignore[misc]
     async def telegram() -> Response:
@@ -213,8 +207,7 @@ async def main(app: Flask) -> None:
         config=uvicorn.Config(
             app=WsgiToAsgi(app),
             port=PORT,
-            use_colors=False,
-            host="127.0.0.1",
+            use_colors=False
         )
     )
 
@@ -277,4 +270,4 @@ def search(search_str: list[str], db_type: DbType) -> Optional[str]:
 
 
 if __name__ == "__main__":
-    asyncio.run(main(app))
+    asyncio.run(main())
