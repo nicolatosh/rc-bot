@@ -43,9 +43,6 @@ from telegram.ext import (
 
 from search import search_monologue
 
-# Set up webserver
-app = Flask(__name__)
-
 # States for the BOT state machine
 START_ROUTES, END_ROUTES = range(2)
 MENU, MALE_MONOLOGUES, FEMALE_MONOLOGUES, CONTINUE, END = range(5)
@@ -147,7 +144,7 @@ async def webhook_update(update: WebhookUpdate, context: CustomContext) -> None:
 
 
 
-async def main() -> None:
+async def main(app: Flask) -> None:
     """Set up PTB application and a web application for handling the incoming requests."""
     context_types = ContextTypes(context=CustomContext)
     # Here we set updater to None because we want our custom webhook server to handle the updates
@@ -279,4 +276,5 @@ def search(search_str: list[str], db_type: DbType) -> Optional[str]:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    flask_app = Flask(__name__)
+    asyncio.run(main(flask_app))
