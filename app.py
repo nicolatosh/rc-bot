@@ -276,5 +276,5 @@ def search(search_str: list[str], db_type: DbType) -> Optional[str]:
 
 
 if __name__ == "__main__":
-    flask_app = Flask(__name__)
-    asyncio.run(main(flask_app))
+    app = Flask(__name__)
+    asyncio.run(main(app))
