@@ -167,7 +167,7 @@ async def main() -> None:
     await updater.initialize()
     await updater.start_webhook(listen="0.0.0.0",
                                 port=PORT,
-                                webhook_url=WEBHOOK_URL,
+                                webhook_url=WEBHOOK_URL + "/telegram",
                                 allowed_updates=Update.ALL_TYPES
                                )
     # Run application and webserver together
