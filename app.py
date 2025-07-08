@@ -174,6 +174,10 @@ async def main() -> None:
     # Pass webhook settings to telegram
     await application.bot.set_webhook(url=f"{WEBHOOK_URL}/telegram", allowed_updates=Update.ALL_TYPES)
 
+    @app.route('/')
+    def home():
+        return 'Hello, World!'
+
     @app.post("/telegram")  # type: ignore[misc]
     async def telegram() -> Response:
         """Handle incoming Telegram updates by putting them into the `update_queue`"""
