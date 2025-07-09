@@ -133,6 +133,7 @@ async def start_over(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def main() -> None:
 
+    logging.info("main started")
     # ConversationHandler to handle the state machine
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
@@ -160,9 +161,11 @@ async def main() -> None:
 
     await application.initialize()
     await application.bot.setWebhook(url=WEBHOOK_URL)
+    logging.info("web hook created")
 
     # Run application and webserver together
     async with application:
+        logging.info("app started")
         await application.start()
         await webserver.serve()
         await application.stop()
