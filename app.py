@@ -52,10 +52,8 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 # set higher logging level for httpx to avoid all GET and POST requests being logged
-logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("http").setLevel(logging.WARNING)
 app = Flask(__name__)
-
-
 
 # Define configuration constants
 ADMIN_CHAT_ID = 123456
@@ -221,6 +219,4 @@ def search(search_str: list[str], db_type: DbType) -> Optional[str]:
         text = "Mmm sembra che non ci sia nulla"
     return text
 
-
-if __name__ == "__main__":
-    asyncio.run(main())
+asyncio.run(main())
