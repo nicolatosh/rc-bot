@@ -73,7 +73,7 @@ application= (
 async def telegram() -> Response:
     """Handle incoming Telegram updates by putting them into the `update_queue`"""
     update = Update.de_json(data=request.json, bot=application.bot)
-    logging.warning(f"Received update: {update}")
+    print(f"Received update: {update}")
     await application.process_update(Update.de_json(data=request.json, bot=application.bot))
     return Response(status=HTTPStatus.OK)
 
@@ -86,7 +86,7 @@ async def health() -> Response:
     return response
 
 async def start(update: Update, context: CallbackContext) -> int:
-    logging.warning("start called")
+    print("start called")
     keyboard = [
         [InlineKeyboardButton("Maschili", callback_data=str(MALE_MONOLOGUES))],
         [InlineKeyboardButton("Femminili", callback_data=str(FEMALE_MONOLOGUES))],
@@ -133,7 +133,7 @@ async def start_over(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def main() -> None:
 
-    logging.warning("main started")
+    print("main started")
     # ConversationHandler to handle the state machine
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
@@ -161,11 +161,11 @@ async def main() -> None:
 
     await application.initialize()
     await application.bot.setWebhook(url=WEBHOOK_URL)
-    logging.warning("web hook created")
+    print("web hook created")
 
     # Run application and webserver together
     async with application:
-        logging.warning("app started")
+        print("app started")
         await application.start()
         await webserver.serve()
         await application.stop()
