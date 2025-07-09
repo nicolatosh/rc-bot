@@ -154,6 +154,7 @@ async def main() -> None:
             app=WsgiToAsgi(app),
             port=PORT,
             use_colors=False,
+            host="0.0.0.0"
         )
     )
 
