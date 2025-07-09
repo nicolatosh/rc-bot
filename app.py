@@ -14,14 +14,12 @@ You may also need to change the `listen` value in the uvicorn configuration to m
 Press Ctrl-C on the command line or send a signal to the process to stop the bot.
 """
 import asyncio
-import json
-from dataclasses import dataclass
 from http import HTTPStatus
 from typing import Optional
 import uvicorn
 from asgiref.wsgi import WsgiToAsgi
 
-from flask import Flask, Response, abort, make_response, request
+from flask import Flask, Response, make_response, request
 
 from const import DbType
 from links import WEBHOOK_URL
@@ -69,8 +67,6 @@ from credentials import BOT_TOKEN, PORT
 application= (
     Application.builder().token(BOT_TOKEN).updater(None).build()
 )
-my_queue = asyncio.Queue()
-updater = Updater(bot=application.bot, update_queue=my_queue)
 
 
 @app.post("/telegram")  # type: ignore[misc]
@@ -79,7 +75,6 @@ async def telegram() -> Response:
     update = Update.de_json(data=request.json, bot=application.bot)
     logging.info(f"Received update: {update}")
     await application.process_update(Update.de_json(data=request.json, bot=application.bot))
-    await button(update, application)
     return Response(status=HTTPStatus.OK)
 
 
@@ -163,13 +158,7 @@ async def main() -> None:
         )
     )
 
-    await application.initialize()
-    await updater.initialize()
-    await updater.start_webhook(listen="0.0.0.0",
-                                port=PORT,
-                                webhook_url=WEBHOOK_URL + "/telegram",
-                                allowed_updates=Update.ALL_TYPES
-                               )
+    await application.bot.setWebhook(url=WEBHOOK_URL)
 
     # Run application and webserver together
     async with application:
