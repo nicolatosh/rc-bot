@@ -219,4 +219,6 @@ def search(search_str: list[str], db_type: DbType) -> Optional[str]:
         text = "Mmm sembra che non ci sia nulla"
     return text
 
-asyncio.run(main())
+
+if __name__ == "__main__":
+    asyncio.run(main())
