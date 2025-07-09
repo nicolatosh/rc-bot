@@ -158,6 +158,7 @@ async def main() -> None:
         )
     )
 
+    await application.initialize()
     await application.bot.setWebhook(url=WEBHOOK_URL)
 
     # Run application and webserver together
