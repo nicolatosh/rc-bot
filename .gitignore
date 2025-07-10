@@ -1,2 +1,4 @@
 .env
 database.json
+roles.json
+rc-bot

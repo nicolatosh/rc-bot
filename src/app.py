@@ -1,12 +1,10 @@
-"""app3.py"""
 import logging
 from typing import Optional
-
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ChatMember
 from telegram.constants import ParseMode
-from const import DbType
-from credentials import BOT_TOKEN
-from updater import update_monologues_by_page
+from const import DbType, MALE_MONOLOGUES, FEMALE_MONOLOGUES, MENU, CONTINUE, END
+from env import BOT_TOKEN
+from updater import update_monologues
 from search import search_monologue
 from telegram.ext import (
     ApplicationBuilder,
@@ -15,13 +13,9 @@ from telegram.ext import (
     CallbackQueryHandler,
     ConversationHandler,
     MessageHandler,
-    filters, ContextTypes,
-    Updater
+    filters, ContextTypes
 )
-
-# States for the BOT state machine
-START_ROUTES, END_ROUTES = range(2)
-MENU, MALE_MONOLOGUES, FEMALE_MONOLOGUES, CONTINUE, END = range(5)
+from commands import promote
 
 # Setup logging
 logging.basicConfig(
@@ -37,12 +31,12 @@ async def start(update: Update, context: CallbackContext) -> int:
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
-        f"Unofficial RC Bot\n Ciao artista! Quale tipologia di monologhi vuoi cercare?", reply_markup=reply_markup
+        f"Benvenuto {update.effective_user.first_name}! Quale tipologia di monologhi vuoi cercare?", reply_markup=reply_markup
     )
     return MENU
 
 
-async def button(update: Update, context: CallbackContext) -> int:
+async def menu_handler(update: Update, context: CallbackContext) -> int:
     query = update.callback_query
     await query.answer()
 
@@ -88,32 +82,43 @@ def main():
 
     # ConversationHandler to handle the state machine
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("start", start)],
+        entry_points=[CommandHandler("start", start),
+                      CommandHandler("update", update),
+                      CommandHandler("promote", promote)],
         states={
-            MENU: [CallbackQueryHandler(button)],
+            MENU: [CallbackQueryHandler(menu_handler)],
             MALE_MONOLOGUES: [MessageHandler(filters.TEXT & ~filters.COMMAND, search_male)],
             FEMALE_MONOLOGUES: [MessageHandler(filters.TEXT & ~filters.COMMAND, search_female)],
             CONTINUE: [CallbackQueryHandler(start_over)],
-            END: [CallbackQueryHandler(button)]
+            END: [CallbackQueryHandler(menu_handler)]
         },
         fallbacks=[CommandHandler("start", start)],
     )
 
     application.add_handler(conv_handler)
-    updater = Updater()
-    updater.start_webhook(listen="0.0.0.0",
-                          port=int(os.environ.get('PORT', 5000)),
-                          url_path=telegram_bot_token,
-                          webhook_url=+ telegram_bot_token
-                          )
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
 async def update(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    res = update_monologues_by_page(DbType.MALE)
+    """
+    Manually triggers update of monologues.
+    Calls the task "update_monologues".
+    """
+    user_id = update.effective_user.id
+    chat_id = update.effective_chat.id
 
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="Sto aggiornando i monologhi, torna più tardi")
+    # Get the chat member status of the user
+    member = await context.bot.get_chat_member(chat_id, user_id)
+
+    # Check if user is admin or creator
+    if member.status in [ChatMember.ADMINISTRATOR, ChatMember.OWNER]:
+
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="Sto aggiornando i monologhi, torna più tardi")
+        update_monologues.delay(DbType.MALE)
+        update_monologues.apply_async(countdown=3600)
+
+    else:
+        await update.message.reply_text("Comando riservato per utenti amministratori")
 
 
 async def search_male(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -148,21 +153,20 @@ async def search_female(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def search(search_str: list[str], db_type: DbType) -> Optional[str]:
 
-    # creating string
-    search_string = ""
+    found_monologues = set()
     for elem in search_str:
-        search_string = search_string + elem
+        res = search_monologue(db_type, elem)
+        found_monologues.update(res)
 
-    res = search_monologue(db_type, search_string)
-    result_size = len(res)
+    result_size = len(found_monologues)
     if result_size:
         if result_size > 1:
-            text = f"<b>Trovato {len(res)} monologhi:</b>\n"
+            text = f"<b>Trovato {result_size} monologhi:</b>\n"
         else:
             text = "<b>Trovato un solo monologo</b>\n"
-        for elem in res:
-            text = text + "<b>Nome:</b> " + elem["text"] + "\n"
-            text = text + "<b>Url:</b> <a href=\"" + elem["url"] + "\">" + elem["url"] + "</a>\n"
+        for monologue in found_monologues:
+            text = text + "<b>Nome:</b> " + monologue.text + "\n"
+            text = text + "<b>Url:</b> <a href=\"" + monologue.url + "\">" + monologue.url + "</a>\n"
     else:
         text = "Mmm sembra che non ci sia nulla"
     return text
@@ -170,4 +174,3 @@ def search(search_str: list[str], db_type: DbType) -> Optional[str]:
 
 if __name__ == "__main__":
     main()
-
