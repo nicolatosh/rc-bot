@@ -1,4 +1,4 @@
-.env
-database.json
-roles.json
+*.env
+*.json
+*.txt
 rc-bot
