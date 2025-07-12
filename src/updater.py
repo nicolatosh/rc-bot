@@ -43,7 +43,6 @@ def update_monologues_by_page(schema_name: DbType, page_number: int = 0):
     """
 
     url = URL_BY_TYPE[schema_name]
-    logger.info(f'Updating monologues database for {schema_name}')
 
     # creating link for update monologues of a specific page
     page_url = url + f"?page={page_number}"
@@ -95,6 +94,7 @@ def update_monologues(schema_name: DbType) -> None:
     :return: None
     """
 
+    logger.info(f'UPDATER - Updating monologues database for {schema_name}')
     # Checking last DB update to understand how many
     # pages of the Blog to parse
     url = URL_BY_TYPE[schema_name]
@@ -122,7 +122,7 @@ def update_monologues(schema_name: DbType) -> None:
 
     # Updating from page 0 to delta
     for index in range(0, delta + 1):
-        update_monologues_by_page(schema_name=DbType.MALE.value, page_number=index)
+        update_monologues_by_page(schema_name=schema_name, page_number=index)
         time.sleep(3)
 
     # updating total pages in db
