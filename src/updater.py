@@ -122,6 +122,10 @@ def update_monologues(schema_name: DbType) -> None:
         update_monologues_by_page(schema_name=schema_name, page_number=index)
         time.sleep(3)
 
+    # Reopen updated db
+    with open('database.json') as db:
+        database = json.load(db)
+
     # updating total pages in db
     database[schema_name]['total_pages'] = total_pages
 
@@ -133,5 +137,4 @@ def update_monologues(schema_name: DbType) -> None:
         json.dump(database, db)
 
 if __name__ == '__main__':
-    update_monologues(DbType.MALE.value)
     update_monologues(DbType.FEMALE.value)
