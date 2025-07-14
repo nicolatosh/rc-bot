@@ -190,7 +190,7 @@ async def search_female(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("Che si fa?", reply_markup=reply_markup)
+    await update.message.reply_text(conversation.type(ConversationType.CONTINUE_QUESTION).random().get(), reply_markup=reply_markup)
     return MENU
 
 
