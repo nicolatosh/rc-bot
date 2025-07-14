@@ -62,9 +62,6 @@ def update_monologues_by_page(schema_name: DbType, page_number: int = 0):
         if not blog_post["text"] in monologue_names:
             monologue_list.append(blog_post)
 
-    # Setting date of last update
-    database[schema_name]["last_update"] = datetime. now().strftime('%d/%m/%Y')
-
     # updating db
     if url == links.MALE_MONOLOGUES:
         database['male_monologues']["list"] = monologue_list
@@ -127,6 +124,9 @@ def update_monologues(schema_name: DbType) -> None:
 
     # updating total pages in db
     database[schema_name]['total_pages'] = total_pages
+
+    # Setting date of last update
+    database[schema_name]["last_update"] = datetime.now().strftime('%d/%m/%Y')
 
     # saving updates
     with open('database.json', 'w') as db:
