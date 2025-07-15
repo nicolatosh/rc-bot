@@ -181,7 +181,7 @@ def main_parser() -> int:
 
     if minutes != 0:
         logger.info(f'Waiting for [{minutes}] minutes.')
-        sleep(minutes)
+        sleep(minutes*60)
 
     # Check if need to update all
     if update_all:
