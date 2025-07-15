@@ -1,7 +1,10 @@
 import json, links
 import logging
 import time
+import argparse
 from datetime import datetime
+from time import sleep
+
 from celery_app import app
 from const import DbType, URL_BY_TYPE
 from scraper import async_monologue_scraper, get_total_pagination_counter
@@ -12,11 +15,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def check_outdated_db(timestamp: datetime = None, schema_name: DbType = DbType.MALE) -> bool:
+def check_outdated_db(timestamp: datetime = None, schema_name: str = DbType.MALE.value) -> bool:
     """
     Check if the database is up to date based on the timestamp.
     :param timestamp:
-    :param schema_name: Which schema to use either DBType.MALE or DBType.FEMALE
+    :param schema_name: Which schema to use either DBType.MALE or DBType.FEMALE values
     :return: True or False
     """
     if timestamp is None:
@@ -136,5 +139,58 @@ def update_monologues(schema_name: DbType) -> None:
     with open('database.json', 'w') as db:
         json.dump(database, db)
 
+
+def main_parser() -> int:
+    """
+    Command line argument parsing for the UPDATE method.
+    :return: 0 for success, -1 for failure.
+    """
+    # Create an ArgumentParser object with a description
+    parser = argparse.ArgumentParser(description='Update the monologues database.')
+    # Define command-line arguments
+    parser.add_argument('dbtype',
+                        type=str,
+                        help='The type of schema. Use either "female_monologues" or "male_monologues" or "all" for both')
+    parser.add_argument('--schedule',
+                        type=int,
+                        required=False,
+                        help='Schedule the update after N minutes. Must be between 1 and 60. For'
+                             'advanced scheduling, switch to queue mechanism. This command cannot'
+                             'manage multiple schedules.',
+                        default=0)
+    # Parse the command-line arguments
+    args = parser.parse_args()
+
+    update_all = False
+    if args.dbtype == "all":
+        update_all = True
+    elif args.dbtype not in [e.value for e in DbType]:
+        logger.error(f'Unknown database type: [{args.dbtype}]')
+        return -1
+
+    minutes = 0
+    if args.schedule:
+        try:
+            minutes = int(args.schedule)
+            if minutes < 1 or minutes > 60:
+                logger.error(f'Invalid schedule argument: [{args.schedule}]')
+                return -1
+        except ValueError:
+            logger.error(f'Invalid schedule argument: [{args.schedule}]')
+            return -1
+
+    if minutes != 0:
+        logger.info(f'Waiting for [{minutes}] minutes.')
+        sleep(minutes)
+
+    # Check if need to update all
+    if update_all:
+        logger.info(f'Request to update monologues for all schemas.')
+        for e in [v.value for v in DbType]:
+            update_monologues(schema_name=e)
+    else:
+        update_monologues(schema_name=args.dbtype)
+    return 0
+
 if __name__ == '__main__':
-    update_monologues(DbType.FEMALE.value)
+    main_parser()
